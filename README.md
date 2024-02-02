@@ -1,7 +1,3 @@
-
-#### ProyectoDE
-### ProyectoDE
-## ProyectoDE
 # ProyectoDE
 #Este proyecto utiliza la API de CoinGecko para obtener información en tiempo real sobre criptomonedas y luego almacena esos datos en una base de datos Redshift utilizando SQLAlchemy.
 
@@ -38,11 +34,12 @@ price_change_percentage_24h_in_currency: Cambio porcentual de precio en las últ
 price_change_percentage_7d_in_currency: Cambio porcentual de precio en los últimos 7 días en la moneda especificada.
 
 ## Uso del Script
-Configuración del Entorno:
+
+# Configuración del Entorno:
 Asegúrate de tener Python instalado en tu sistema.
 Instala las bibliotecas necesarias ejecutando pip install requests sqlalchemy redshift_connector.
 
-Ejecución del Script:
+# Ejecución del Script:
 Clona el repositorio desde GitHub.
 Ejecuta el script proyectoDE.py.
 El script obtendrá datos de la API de CoinGecko y los almacenará en una base de datos Redshift.
@@ -51,10 +48,10 @@ Consideraciones sin pipeline.conf:
 Dado que el archivo pipeline.conf no se comparte en el repositorio, se espera que los usuarios configuren manualmente la conexión a la base de datos.
 Puedes modificar la función obtenerString para aceptar rutas relativas o utilizar variables de entorno para configurar la conexión de forma segura.
 
-Configuración de Base de Datos:
+# Configuración de Base de Datos:
 Asegúrate de tener una base de datos Redshift disponible.
 Modifica el script según sea necesario para adaptarlo a tu configuración específica de base de datos.
-Notas Adicionales:
 
+## Notas Adicionales:
 Puedes personalizar el conjunto de criptomonedas modificando la lista ids_cryptos en el script.
 Consulta la documentación de CoinGecko para obtener más información sobre la API: CoinGecko API Documentation.
