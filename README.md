@@ -1,7 +1,7 @@
 ## ProyectoDE
-Este proyecto utiliza la API de CoinGecko para obtener información en tiempo real sobre criptomonedas y luego almacena esos datos en una base de datos Redshift utilizando SQLAlchemy.
+#Este proyecto utiliza la API de CoinGecko para obtener información en tiempo real sobre criptomonedas y luego almacena esos datos en una base de datos Redshift utilizando SQLAlchemy.
 
-Archivo JSON de Ejemplo
+###Archivo JSON
 El script utiliza un JSON con datos de ejemplo de criptomonedas. Aquí se explica cada clave del JSON:
 
 id_crypto: Identificador único de la criptomoneda.
