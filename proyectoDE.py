@@ -2,6 +2,8 @@ import requests
 from configparser import ConfigParser
 import sqlalchemy as sa
 from sqlalchemy.engine.url import URL
+import pandas as pd
+import json
 
 #Parametros para la API
 ids_cryptos = ["bitcoin", "bitcoin-cash", "cardano", "dogecoin", "eos", "ethereum", "iota", "stellar", "litecoin", "neo"]
@@ -28,9 +30,6 @@ def obtenerDatosDeLaAPI(ids_cryptos, vs_currency, price_change_percentage):
     data = response.json()
     return data
 datosDeLaAPI = obtenerDatosDeLaAPI(ids_cryptos,vs_currency,price_change_percentage)
-
-#Print para ver los datos de la API, está comentado porque son muchos datos
-#print(json.dumps(datosDeLaAPI, indent=2))
 
 
 # Función para obtener el string de conexión
@@ -70,9 +69,12 @@ stringDeConexion = obtenerString("C:/Users/emmam/Desktop/proyecto/config/pipelin
 #Creación del engine de SQLAlchemy
 engine = sa.create_engine(stringDeConexion)
 
-#Query para crear la tabla según los datos del JSON
+
+# Query para crear la tabla según los datos del JSON
+# Se crea una columna id que es autoincrementable y es la primary key; y se crea una columna date que guarda las fechas
 query = """
 CREATE TABLE IF NOT EXISTS cryptos (
+    id INT IDENTITY(1,1) PRIMARY KEY,
     id_crypto VARCHAR(50),
     symbol VARCHAR(10),
     name VARCHAR(50),
@@ -104,6 +106,34 @@ CREATE TABLE IF NOT EXISTS cryptos (
 );
 """
 
-#Ejecución de la query
+
+# Ejecución de la query
 with engine.connect() as connection:
-     connection.execute(sa.text(query))
+    connection.execute(sa.text(query))
+
+
+# Transformación del JSON a Dataframe
+datosDeLaAPI = obtenerDatosDeLaAPI(ids_cryptos, vs_currency, price_change_percentage)
+dataframe = pd.DataFrame(datosDeLaAPI)
+
+
+# Transformaciones pertinentes al dataframe
+# Se cambia el nombre de la columna id por id_crypto
+# Se cargan los datos de la fecha usando la columna last_updated
+# Se eliminan las columnas roi e image
+dataframe.rename(columns={'id': 'id_crypto'}, inplace=True)
+dataframe['date'] = dataframe['last_updated'].apply(lambda x: x.split('T')[0] if pd.notnull(x) else None)
+dataframe = dataframe.drop(columns=['roi'])
+dataframe = dataframe.drop(columns=['image'])
+
+
+# Se sube el dataframe a la base de datos
+# Se pone if_exists="append" para que, cuando se suban los nuevos valores, se posiciones siguientes a los anteiores valores
+dataframe.to_sql(
+    name="cryptos",
+    con=engine,
+    schema="emma_nionn_coderhouse",
+    if_exists="append",
+    method="multi",
+    index=False,
+)
