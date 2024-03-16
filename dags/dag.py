@@ -1,9 +1,9 @@
 from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
-from airflow.providers.postgres.operators.postgres import PostgresOperator
-from datetime import datetime
 from airflow.operators.dummy import DummyOperator
+from datetime import datetime
 
+from scripts.proyectoDE import crearDataLake, crearDataWarehouse, cargarDataLake, cargarDataWarehouse
 
 ids_cryptos = ["bitcoin", "bitcoin-cash", "cardano", "dogecoin", "eos", "ethereum", "iota", "stellar", "litecoin", "neo"]
 vs_currency = "usd"
@@ -26,18 +26,45 @@ with DAG(
     catchup=False
 ) as dag:
 
-    # task con dummy operator
-    dummy_start_task = DummyOperator(
-        task_id="start"
+
+    tarea_crear_data_lake = PythonOperator(
+        task_id='crear_data_lake',
+        python_callable=crearDataLake,
+        op_kwargs={"stringDeConexion": "{{ ti.xcom_pull(task_ids='Obtener_string_de_conexion') }}"},
     )
 
-    # Tarea para crear la tabla de cryptos en la base de datos
 
-    create_tables_task = PostgresOperator(
-        task_id="create_tables",
-        postgres_conn_id="proyectoDE_redshift",
-        sql="sql/createsDataWarehouse.sql",
-        params={"options": "-c search_path=emma_nionn_coderhouse_schema"}
+    tarea_crear_data_warehouse = PythonOperator(
+        task_id='crear_data_warehouse',
+        python_callable=crearDataWarehouse,
+        op_kwargs={
+            "stringDeConexion": "{{ ti.xcom_pull(task_ids='Obtener_string_de_conexion') }}"
+            },
     )
-    # Definir dependencias
-    dummy_start_task >> create_tables_task 
+
+    dummy_final_de_creacion_de_tablas = DummyOperator(
+        task_id="tablas_creadas"
+    )
+
+    tarea_cargar_data_lake = PythonOperator(
+        task_id='cargar_data_lake',
+        python_callable=cargarDataLake,
+        op_kwargs={
+            "ids_cryptos": ids_cryptos,
+            "vs_currency": vs_currency,
+            "price_change_percentage": price_change_percentage,
+            "stringDeConexion": "{{ ti.xcom_pull(task_ids='Obtener_string_de_conexion') }}"
+            },
+    )
+
+    tarea_cargar_data_warehouse = PythonOperator(
+        task_id='cargar_data_warehouse',
+        python_callable=cargarDataWarehouse,
+        op_kwargs={
+            "stringDeConexion": "{{ ti.xcom_pull(task_ids='Obtener_string_de_conexion') }}"
+            },
+    )
+
+    tarea_crear_data_lake >> dummy_final_de_creacion_de_tablas
+    tarea_crear_data_warehouse >> dummy_final_de_creacion_de_tablas
+    dummy_final_de_creacion_de_tablas >> tarea_cargar_data_lake >> tarea_cargar_data_warehouse
