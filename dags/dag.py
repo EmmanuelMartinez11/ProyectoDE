@@ -1,13 +1,17 @@
 from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
 from airflow.operators.dummy import DummyOperator
+from airflow.models import DAG, Variable
+
 from datetime import datetime
 
-from scripts.proyectoDE import crearDataLake, crearDataWarehouse, cargarDataLake, cargarDataWarehouse
+
+from scripts.proyectoDE import crearDataLake, crearDataWarehouse, cargarDataLake, cargarDataWarehouse, controlarCryptos
 
 ids_cryptos = ["bitcoin", "bitcoin-cash", "cardano", "dogecoin", "eos", "ethereum", "iota", "stellar", "litecoin", "neo"]
 vs_currency = "usd"
 price_change_percentage = "1h,24h,7d"
+
 
 default_args = {
     'owner': 'airflow',
@@ -23,23 +27,19 @@ with DAG(
     start_date=datetime(2024, 3, 12),
     schedule_interval='@daily',
     default_args=default_args,
-    catchup=False
+    catchup=False,
 ) as dag:
 
 
     tarea_crear_data_lake = PythonOperator(
         task_id='crear_data_lake',
         python_callable=crearDataLake,
-        op_kwargs={"stringDeConexion": "{{ ti.xcom_pull(task_ids='Obtener_string_de_conexion') }}"},
     )
 
 
     tarea_crear_data_warehouse = PythonOperator(
         task_id='crear_data_warehouse',
         python_callable=crearDataWarehouse,
-        op_kwargs={
-            "stringDeConexion": "{{ ti.xcom_pull(task_ids='Obtener_string_de_conexion') }}"
-            },
     )
 
     dummy_final_de_creacion_de_tablas = DummyOperator(
@@ -53,18 +53,23 @@ with DAG(
             "ids_cryptos": ids_cryptos,
             "vs_currency": vs_currency,
             "price_change_percentage": price_change_percentage,
-            "stringDeConexion": "{{ ti.xcom_pull(task_ids='Obtener_string_de_conexion') }}"
             },
     )
 
     tarea_cargar_data_warehouse = PythonOperator(
         task_id='cargar_data_warehouse',
         python_callable=cargarDataWarehouse,
+    
+    )
+
+    tarea_controlar_cyptos = PythonOperator (
+        task_id='controlar_cyptos',
+        python_callable=controlarCryptos,
         op_kwargs={
-            "stringDeConexion": "{{ ti.xcom_pull(task_ids='Obtener_string_de_conexion') }}"
+            "contrasenia": Variable.get('gmail_password')
             },
     )
 
     tarea_crear_data_lake >> dummy_final_de_creacion_de_tablas
     tarea_crear_data_warehouse >> dummy_final_de_creacion_de_tablas
-    dummy_final_de_creacion_de_tablas >> tarea_cargar_data_lake >> tarea_cargar_data_warehouse
+    dummy_final_de_creacion_de_tablas >> tarea_cargar_data_lake >> tarea_cargar_data_warehouse >> tarea_controlar_cyptos
